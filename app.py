@@ -1,5 +1,5 @@
 """
-Aplicación Streamlit - Análisis DuPont (Funcionalidad 1)
+Aplicación Streamlit - Análisis DuPont (Funcionalidades 1 y 2)
 
 Esta aplicación permite calcular y visualizar los componentes del modelo DuPont
 a partir de cuatro variables financieras clave:
@@ -10,11 +10,16 @@ a partir de cuatro variables financieras clave:
 
 El modelo DuPont descompone el ROE en tres componentes multiplicativos:
 ROE = Margen Neto × Rotación de Activos × Apalancamiento Financiero
+
+Funcionalidades incluidas:
+1. Cálculo de ratios financieros básicos
+2. Visualización 3D del Prisma ROE
 """
 
 import streamlit as st
 import pandas as pd
 from calculos_financieros import calcular_componentes_dupont
+from visualizaciones import crear_visualizacion_dupont_completa
 
 
 # Configuración de la página
@@ -157,35 +162,66 @@ with col4:
         help="Margen Neto × Rotación de Activos × Apalancamiento"
     )
 
-# Interpretación del ROE
+# Sección de visualización 3D del Prisma ROE
 st.markdown("---")
-st.subheader("💡 Interpretación del ROE")
+st.header("🎯 Visualización 3D del Prisma ROE DuPont")
 
-roe_pct = componentes['roe'] * 100
+st.markdown("""
+El siguiente gráfico 3D muestra cómo los tres componentes del modelo DuPont se combinan 
+para determinar el ROE. El **prisma** representa visualmente la interacción entre:
 
-if roe_pct >= 20:
-    interpretacion = "**Excelente**: El ROE es muy alto, indicando una rentabilidad superior. Verifique la sostenibilidad de este nivel."
-    color = "success"
-elif roe_pct >= 15:
-    interpretacion = "**Muy Bueno**: El ROE está por encima del promedio del mercado, indicando buena rentabilidad."
-    color = "success"
-elif roe_pct >= 10:
-    interpretacion = "**Adecuado**: El ROE está en un rango aceptable. Analice oportunidades de mejora en los componentes."
-    color = "info"
-elif roe_pct >= 5:
-    interpretacion = "**Bajo**: El ROE está por debajo del promedio. Revise los componentes para identificar áreas de mejora."
-    color = "warning"
-else:
-    interpretacion = "**Muy Bajo**: El ROE requiere atención inmediata. Analice cada componente del modelo DuPont."
-    color = "error"
+- **Eje X**: Margen Neto (eficiencia operativa)
+- **Eje Y**: Rotación de Activos (eficiencia en el uso de activos)
+- **Eje Z**: Apalancamiento Financiero (uso de deuda)
 
-st.info(f"ROE de {roe_pct:.2f}%: {interpretacion}")
+El **volumen del prisma** y el **punto rojo** indican el ROE resultante. Puedes rotar, 
+acercar y alejar el gráfico para explorar mejor la relación entre los componentes.
+""")
+
+# Crear y mostrar el gráfico 3D del prisma
+fig_prisma = crear_visualizacion_dupont_completa(
+    margen_neto=componentes['margen_neto'],
+    rotacion_activos=componentes['rotacion_activos'],
+    apalancamiento=componentes['apalancamiento'],
+    roe=componentes['roe']
+)
+
+st.plotly_chart(fig_prisma, use_container_width=True)
+
+# Información adicional sobre la interpretación del prisma
+st.markdown("---")
+st.subheader("📐 Interpretación del Prisma 3D")
+
+col_izq, col_der = st.columns(2)
+
+with col_izq:
+    st.markdown("""
+    **Dimensiones del Prisma:**
+    - Un prisma **más grande** indica un ROE más alto
+    - Un prisma **más pequeño** indica un ROE más bajo
+    
+    **Forma del Prisma:**
+    - Un prisma **alargado en el eje X** indica alto margen neto
+    - Un prisma **alargado en el eje Y** indica alta rotación de activos
+    - Un prisma **alargado en el eje Z** indica alto apalancamiento
+    """)
+
+with col_der:
+    st.markdown("""
+    **Impacto de los Componentes:**
+    - Si aumentas el **margen neto**, el prisma se extiende a lo largo del eje X
+    - Si aumentas la **rotación**, el prisma se extiende a lo largo del eje Y
+    - Si aumentas el **apalancamiento**, el prisma se extiende a lo largo del eje Z
+    
+    **Nota:** El prisma se normaliza para facilitar la visualización. 
+    Los valores reales se muestran en los ejes y etiquetas.
+    """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: gray;'>
-    <small>Proyecto ROE DuPont - Funcionalidad 1: Cálculo de Ratios Financieros Básicos</small>
+    <small>Proyecto ROE DuPont - Funcionalidades 1 y 2: Cálculo de Ratios y Visualización 3D del Prisma ROE</small>
 </div>
 """, unsafe_allow_html=True)
 
