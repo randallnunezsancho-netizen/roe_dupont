@@ -1,5 +1,5 @@
 """
-Aplicación Streamlit - Análisis DuPont (Funcionalidades 1 y 2)
+Aplicación Streamlit - Análisis DuPont (Funcionalidades 1, 2 y 3)
 
 Esta aplicación permite calcular y visualizar los componentes del modelo DuPont
 a partir de cuatro variables financieras clave:
@@ -14,12 +14,13 @@ ROE = Margen Neto × Rotación de Activos × Apalancamiento Financiero
 Funcionalidades incluidas:
 1. Cálculo de ratios financieros básicos
 2. Visualización 3D del Prisma ROE
+3. Estados Financieros Simplificados (Estado de Resultados y Balance General)
 """
 
 import streamlit as st
 import pandas as pd
 from calculos_financieros import calcular_componentes_dupont
-from visualizaciones import crear_visualizacion_dupont_completa
+from visualizaciones import crear_visualizacion_dupont_completa, crear_estado_resultados, crear_balance_general
 
 
 # Configuración de la página
@@ -217,11 +218,34 @@ with col_der:
     Los valores reales se muestran en los ejes y etiquetas.
     """)
 
+# Sección de Estados Financieros Simplificados (Funcionalidad 3)
+st.markdown("---")
+st.header("📋 Estados Financieros Simplificados")
+
+st.markdown("""
+Los siguientes gráficos muestran una representación simplificada de los estados financieros 
+derivados de las variables contables ingresadas. Estos complementan el análisis DuPont 
+proporcionando contexto contable básico para entender mejor la estructura financiera de la empresa.
+""")
+
+# Crear los gráficos de Estados Financieros
+estado_resultados_fig = crear_estado_resultados(ventas, utilidad_neta)
+balance_general_fig = crear_balance_general(activos_promedio, patrimonio_promedio)
+
+# Mostrar los gráficos lado a lado
+col1, col2 = st.columns([1.2, 1])
+
+with col1:
+    st.plotly_chart(estado_resultados_fig, use_container_width=True)
+
+with col2:
+    st.plotly_chart(balance_general_fig, use_container_width=True)
+
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: gray;'>
-    <small>Proyecto ROE DuPont - Funcionalidades 1 y 2: Cálculo de Ratios y Visualización 3D del Prisma ROE</small>
+    <small>Proyecto ROE DuPont - Funcionalidades 1, 2 y 3: Cálculo de Ratios, Visualización 3D del Prisma ROE y Estados Financieros Simplificados</small>
 </div>
 """, unsafe_allow_html=True)
 

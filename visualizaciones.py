@@ -1,11 +1,14 @@
 """
-Módulo de Visualizaciones - Prisma 3D ROE DuPont
+Módulo de Visualizaciones - Prisma 3D ROE DuPont y Estados Financieros
 
-Este módulo contiene las funciones para generar visualizaciones 3D del modelo DuPont,
-específicamente el prisma que representa la interacción de los tres componentes:
-- Margen Neto
-- Rotación de Activos
-- Apalancamiento Financiero
+Este módulo contiene las funciones para generar visualizaciones del modelo DuPont:
+1. Visualización 3D del prisma que representa la interacción de los tres componentes:
+   - Margen Neto
+   - Rotación de Activos
+   - Apalancamiento Financiero
+2. Visualizaciones de Estados Financieros Simplificados:
+   - Estado de Resultados (gráfico de barras horizontales)
+   - Balance General (gráfico de barras verticales apiladas)
 
 El prisma muestra visualmente cómo estos componentes se combinan para determinar el ROE.
 """
@@ -286,6 +289,240 @@ def crear_visualizacion_dupont_completa(margen_neto: float, rotacion_activos: fl
         bgcolor='rgba(255, 255, 255, 0.8)',
         bordercolor='black',
         borderwidth=1
+    )
+    
+    return fig
+
+
+def crear_estado_resultados(ventas: float, utilidad_neta: float) -> go.Figure:
+    """
+    Crea un gráfico de barras horizontales que representa el Estado de Resultados simplificado.
+    
+    Muestra tres componentes principales:
+    - Ventas (azul claro)
+    - Gastos (rosa claro) - calculado como Ventas - Utilidad Neta
+    - Utilidad Neta (verde claro)
+    
+    Parámetros:
+    -----------
+    ventas : float
+        Ventas totales del período
+    utilidad_neta : float
+        Utilidad neta después de impuestos
+        
+    Retorna:
+    --------
+    go.Figure
+        Figura de Plotly con el gráfico de barras horizontales del Estado de Resultados
+    """
+    # Calcular gastos como diferencia entre ventas y utilidad neta
+    gastos = ventas - utilidad_neta
+    
+    # Datos para el gráfico
+    # En Plotly con barras horizontales, por defecto el orden se muestra de ABAJO a ARRIBA
+    # Para invertir y mostrar Ventas arriba, Gastos medio, Utilidad Neta abajo:
+    # Usamos categoryorder='array' con autorange='reversed' O simplemente invertimos el orden
+    categorias = ['Utilidad Neta', 'Gastos', 'Ventas']
+    valores = [utilidad_neta, gastos, ventas]
+    
+    # Colores según la imagen de referencia (orden invertido para que coincida con el orden de categorias)
+    # Verde claro para Utilidad Neta, Rosa claro para Gastos, Azul claro para Ventas
+    colores = ['rgba(144, 238, 144, 0.8)', 'rgba(255, 182, 193, 0.8)', 'rgba(173, 216, 230, 0.8)']
+    
+    # Crear el gráfico de barras horizontales
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        y=categorias,
+        x=valores,
+        orientation='h',
+        marker=dict(
+            color=colores,
+            line=dict(color='rgba(0, 0, 0, 0.3)', width=1)
+        ),
+        text=[f'${val:,.0f}'.replace(',', '.') for val in valores],
+        textposition='inside',  # Etiquetas dentro de las barras
+        textfont=dict(size=12, color='black'),
+        hovertemplate='<b>%{y}</b><br>Monto: $%{x:,.0f}<extra></extra>',
+        name=''
+    ))
+    
+    # Configurar el layout del gráfico
+    fig.update_layout(
+        title={
+            'text': '<b>Estado de Resultados</b><br><sub>Año terminado 31 de Diciembre, 20X5</sub>',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 16, 'color': 'black'}
+        },
+        xaxis=dict(
+            title='Monto ($)',
+            titlefont=dict(size=12, color='rgba(0, 0, 0, 0.7)'),
+            tickfont=dict(size=11, color='rgba(0, 0, 0, 0.7)'),
+            gridcolor='rgba(0, 0, 0, 0.1)',
+            linecolor='rgba(0, 0, 0, 0.7)',
+            linewidth=1,
+            # Ajustar el rango máximo para que muestre hasta 1M o un poco más
+            range=[0, max(ventas * 1.05, 1000000)]
+        ),
+        yaxis=dict(
+            title='',
+            tickfont=dict(size=12, color='black'),
+            linecolor='rgba(0, 0, 0, 0.7)',
+            linewidth=1,
+            categoryorder='array',
+            categoryarray=categorias,
+            autorange='reversed'  # Invertir el orden para que Ventas quede arriba
+        ),
+        height=300,
+        width=800,
+        margin=dict(l=120, r=50, t=80, b=50),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+    return fig
+
+
+def crear_balance_general(activos_promedio: float, patrimonio_promedio: float) -> go.Figure:
+    """
+    Crea un gráfico de barras verticales apiladas que representa el Balance General simplificado.
+    
+    Muestra dos barras comparativas:
+    - Activos (verde claro) - barra única
+    - Deuda + Patrimonio (barra apilada):
+      - Patrimonio (azul claro) - parte inferior
+      - Deuda (rosa claro) - parte superior
+    
+    Parámetros:
+    -----------
+    activos_promedio : float
+        Promedio de activos totales
+    patrimonio_promedio : float
+        Promedio de patrimonio
+        
+    Retorna:
+    --------
+    go.Figure
+        Figura de Plotly con el gráfico de barras verticales apiladas del Balance General
+    """
+    # Calcular deuda como diferencia entre activos y patrimonio
+    deuda = activos_promedio - patrimonio_promedio
+    
+    # Si la deuda es negativa, establecerla en 0 (caso teórico donde patrimonio excede activos)
+    if deuda < 0:
+        deuda = 0
+    
+    # Colores según la imagen de referencia
+    # Verde claro para Activos, Azul claro para Patrimonio, Rosa claro para Deuda
+    color_activos = 'rgba(144, 238, 144, 0.8)'
+    color_patrimonio = 'rgba(173, 216, 230, 0.8)'
+    color_deuda = 'rgba(255, 182, 193, 0.8)'
+    
+    # Crear el gráfico de barras verticales
+    fig = go.Figure()
+    
+    # Calcular total para mostrar en la parte superior
+    total_pasivo = patrimonio_promedio + deuda
+    
+    # Con barmode='stack', las barras con el mismo valor de x se apilarán automáticamente
+    # Activos tiene x='Activos' (barra simple)
+    # Patrimonio y Deuda tienen x='Deuda + Patrimonio' (se apilarán)
+    
+    # Barra de Activos (barra única)
+    fig.add_trace(go.Bar(
+        x=['Activos'],
+        y=[activos_promedio],
+        name='Activos',
+        marker=dict(
+            color=color_activos,
+            line=dict(color='rgba(0, 0, 0, 0.3)', width=1)
+        ),
+        text=[f'${activos_promedio:,.0f}'.replace(',', '.')],
+        textposition='outside',
+        textfont=dict(size=12, color='black'),
+        hovertemplate='<b>Activos</b><br>Monto: $%{y:,.0f}<extra></extra>',
+        showlegend=False
+    ))
+    
+    # Barra apilada de Deuda + Patrimonio
+    # Primero agregamos Patrimonio (parte inferior) - se apilará primero
+    fig.add_trace(go.Bar(
+        x=['Deuda + Patrimonio'],
+        y=[patrimonio_promedio],
+        name='Patrimonio',
+        marker=dict(
+            color=color_patrimonio,
+            line=dict(color='rgba(0, 0, 0, 0.3)', width=1)
+        ),
+        text=[f'${patrimonio_promedio:,.0f}'.replace(',', '.')],
+        textposition='inside',
+        textfont=dict(size=11, color='black'),
+        hovertemplate='<b>Patrimonio</b><br>Monto: $%{y:,.0f}<extra></extra>',
+        showlegend=False
+    ))
+    
+    # Luego agregamos Deuda (parte superior) - se apila sobre el patrimonio automáticamente
+    fig.add_trace(go.Bar(
+        x=['Deuda + Patrimonio'],
+        y=[deuda],
+        name='Deuda',
+        marker=dict(
+            color=color_deuda,
+            line=dict(color='rgba(0, 0, 0, 0.3)', width=1)
+        ),
+        text=[f'${deuda:,.0f}'.replace(',', '.') if deuda > 0 else ''],
+        textposition='inside',
+        textfont=dict(size=11, color='black'),
+        hovertemplate='<b>Deuda</b><br>Monto: $%{y:,.0f}<extra></extra>',
+        showlegend=False
+    ))
+    
+    # Configurar el layout del gráfico
+    max_valor = max(activos_promedio, total_pasivo)
+    
+    fig.update_layout(
+        title={
+            'text': '<b>Balance General</b><br><sub>Al 31 de Diciembre, 20X5</sub>',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 16, 'color': 'black'}
+        },
+        xaxis=dict(
+            title='',
+            tickfont=dict(size=12, color='black'),
+            linecolor='rgba(0, 0, 0, 0.7)',
+            linewidth=1
+        ),
+        yaxis=dict(
+            title='Monto ($)',
+            titlefont=dict(size=12, color='rgba(0, 0, 0, 0.7)'),
+            tickfont=dict(size=11, color='rgba(0, 0, 0, 0.7)'),
+            gridcolor='rgba(0, 0, 0, 0.1)',
+            linecolor='rgba(0, 0, 0, 0.7)',
+            linewidth=1,
+            # Ajustar el rango máximo para que muestre hasta 400k o un poco más
+            range=[0, max(max_valor * 1.05, 400000)]
+        ),
+        barmode='stack',  # Usamos 'stack' para apilar Patrimonio y Deuda
+        # Las barras con el mismo x se apilarán automáticamente
+        height=400,
+        width=600,
+        margin=dict(l=60, r=50, t=80, b=60),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+    # Agregar anotación con el total de Deuda + Patrimonio en la parte superior de la barra apilada
+    fig.add_annotation(
+        x='Deuda + Patrimonio',
+        y=total_pasivo,
+        text=f'${total_pasivo:,.0f}'.replace(',', '.'),
+        showarrow=False,
+        font=dict(size=12, color='black'),
+        yshift=15
     )
     
     return fig
