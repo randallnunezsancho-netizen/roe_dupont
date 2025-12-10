@@ -172,6 +172,7 @@ with col_data:
     st.subheader("📊 Resultado")
     st.metric("ROE (%)", f"{roe:.1f}%")
     
+
     st.markdown(f"""
     <div style="background-color: #f0f8ff; padding: 20px; border-radius: 10px; border-left: 5px solid #007bff;">
         <h4 style="color: #004085; margin-top:0;">Dimensiones del Prisma:</h4>
@@ -182,4 +183,120 @@ with col_data:
         </ul>
     </div>
     """, unsafe_allow_html=True)
+
+
+st.markdown("---")
+st.header("📊 Estados Financieros Simplificados")
+
+# Cálculos adicionales para estados financieros
+gastos_totales = ventas - utilidad_neta
+# Pasivo = Activos - Patrimonio (Ecuación contable: Activo = Pasivo + Patrimonio)
+pasivo_total = activos_promedio - patrimonio_promedio
+
+col_er, col_bg = st.columns(2)
+
+# --- Estado de Resultados (Horizontal Bar Chart) ---
+with col_er:
+    st.subheader("📉 Estado de Resultados")
+    st.markdown("**Año terminado 31 de Diciembre, 20X5**")
+    
+    # Datos para el gráfico
+    y_labels = ['Utilidad Neta', 'Gastos', 'Ventas']
+    x_values = [utilidad_neta, gastos_totales, ventas]
+    colors_er = ['#90ee90', '#ffb6c1', '#add8e6'] # Verde claro, Rosado claro, Azul claro
+    
+    fig_er = go.Figure(go.Bar(
+        x=x_values,
+        y=y_labels,
+        orientation='h',
+        marker_color=colors_er,
+        text=[f"${x:,.0f}" for x in x_values],
+        textposition='auto'
+    ))
+    
+    fig_er.update_layout(
+        xaxis_title="Monto ($)",
+        yaxis=dict(autorange="reversed"), # Para tener Ventas arriba si el orden de lista fuera al revés, pero con esta lista Ventas sale abajo si no invertimos. 
+                                          # Plotly dibuja de abajo hacia arriba en orden de lista. 
+                                          # Lista es [Utilidad, Gastos, Ventas]. Plotly pone Utilidad abajo, Gastos medio, Ventas arriba.
+                                          # El usuario pidió "Ventas" como la barra que es suma de las otras.
+                                          # Mejor visualización: Ventas arriba, luego Gastos, luego Utilidad abajo.
+                                          # Como están unidas, quizás quiso decir stacked? No, dijo "barras inclinadas" (supongo horizontales) y no stacked explícitamente para ER,
+                                          # pero "la suma de Gastos + Utilidad es igual a Ventas" sugiere mostrar la composición.
+                                          # Si uso barras separadas, Ventas será la más larga.
+                                          # Voy a usar orden: Ventas (top), Gastos, Utilidad.
+                                          # Plotly por defecto pone el primer elemento abajo.
+                                          # Así que: y=[Utilidad, Gastos, Ventas] pone Utilidad abajo. Correcto.
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20)
+    )
+    st.plotly_chart(fig_er, use_container_width=True)
+
+# --- Balance General (Stacked Bar Chart) ---
+with col_bg:
+    st.subheader("⚖️ Balance General")
+    st.markdown("**Al 31 de Diciembre, 20X5**")
+    
+    # Datos
+    # Columna 1: Activos
+    # Columna 2: Deuda (Pasivo) + Patrimonio (Stacked)
+    
+    x_bg = ['Activos', 'Deuda + Patrimonio']
+    
+    # Barra de Activos (Solo Activos)
+    # Barra de D+P (Pasivo abajo? o Patrimonio abajo? Usualmente Pasivo primero luego Patrimonio o viceversa)
+    # Imagen muestra: Columna Izq (Activos) verde. Columna Der: Azul abajo (Patrimonio?), Rosado arriba (Deuda?).
+    # Vamos a asumir:
+    # Trace 1 (Abajo): Activos (en col 1), Patrimonio (en col 2)
+    # Trace 2 (Arriba): 0 (en col 1), Deuda (en col 2)
+    
+    # Mejor: Usar 3 trazas para controlar colores exactos.
+    # Trace Activos: x=['Activos'], y=[Activos], color=Verde
+    # Trace Patrimonio: x=['Deuda + Patrimonio'], y=[Patrimonio], color=Azul
+    # Trace Pasivo: x=['Deuda + Patrimonio'], y=[Pasivo], color=Rojo/Rosado (Stacked sobre Patrimonio)
+    
+    fig_bg = go.Figure()
+    
+    # Columna Activos
+    fig_bg.add_trace(go.Bar(
+        x=['Activos'],
+        y=[activos_promedio],
+        name='Activos',
+        marker_color='#90ee90', # Light green
+        text=f"${activos_promedio:,.0f}",
+        textposition='auto'
+    ))
+    
+    # Columna Deuda + Patrimonio
+    # Parte inferior: Patrimonio (o Deuda, a gusto, normalmente equity first o debt first. Pondré Patrimonio abajo)
+    fig_bg.add_trace(go.Bar(
+        x=['Deuda + Patrimonio'],
+        y=[patrimonio_promedio],
+        name='Patrimonio',
+        marker_color='#add8e6', # Light blue
+        text=f"${patrimonio_promedio:,.0f}",
+        textposition='auto'
+    ))
+    
+    # Parte superior: Deuda
+    fig_bg.add_trace(go.Bar(
+        x=['Deuda + Patrimonio'],
+        y=[pasivo_total],
+        name='Pasivo (Deuda)',
+        marker_color='#ffb6c1', # Light pink
+        text=f"${pasivo_total:,.0f}",
+        textposition='auto'
+    ))
+    
+    fig_bg.update_layout(
+        barmode='stack',
+        xaxis_title="Concepto",
+        yaxis_title="Monto ($)",
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
+    st.plotly_chart(fig_bg, use_container_width=True)
+
 
